@@ -1,0 +1,32 @@
+name: jx3box_auto_sign_in
+
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DEVICEID: ${{ secrets.DEVICEID }}
+    steps:
+      - name: generate a uuid if env.device_id is empty
+        if: ${{ env.DEVICEID == '' }}
+        run: |
+          echo "DEVICEID=$(cat /proc/sys/kernel/random/uuid)" >> $GITHUB_ENV
+
+      - name: login
+        run: |
+          echo "current device id is $DEVICEID"
+          curl https://server.jx3box.com/account/login/email \
+            -d "user_email=${{ secrets.EMAIL }}" \
+            -d "user_pass=${{ secrets.PASSWD }}" \
+            -d "device_id=${{ env.DEVICEID }}" \
+            -c cookies
+
+      - name: sign in
+        run: |
+          curl -G https://pay.jx3box.com/api/personal/task/everyday/sign-in \
+            -b cookies
